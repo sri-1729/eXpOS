@@ -1,0 +1,41 @@
+breakpoint;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]*512 - 1;
+backup;
+
+alias currID R0;
+currID = [SYSTEM_STATUS_TABLE + 1];
+
+alias procTable R1;
+procTable = PROCESS_TABLE + currID*16;
+[procTable + 12] = SP % 512;
+[procTable + 14] = PTBR;
+[procTable + 15] = PTLR;
+[procTable + 4] = READY;
+
+alias newID R2;
+if(currID == 0) then
+	newID = 1;
+else
+	newID = 0;
+endif;
+
+alias newProcTable R3;
+newProcTable = PROCESS_TABLE + newID * 16;
+SP = [newProcTable + 11] * 512 + [newProcTable + 12];
+PTBR = [newProcTable + 14];
+PTLR = [newProcTable + 15];
+
+[SYSTEM_STATUS_TABLE + 1] = newID;
+
+if([newProcTable + 4] == CREATED) then
+	[newProcTable + 4] = RUNNING;
+	SP = [newProcTable + 13];
+	ireturn;
+endif;
+
+[newProcTable + 4] = RUNNING;
+restore;
+SP = [PROCESS_TABLE +([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+breakpoint;
+ireturn;

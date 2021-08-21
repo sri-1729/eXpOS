@@ -1,0 +1,6 @@
+alias c R0;
+c = 1;
+while(c <= 20) do
+	print c * c;
+	c = c + 1;
+endwhile;
