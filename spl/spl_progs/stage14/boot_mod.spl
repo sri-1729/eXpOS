@@ -125,6 +125,7 @@ PTLR = 10;
 
 alias count R0;
 count = 3;
+breakpoint;
 while (count < 16)do
 	[PROCESS_TABLE + (count * 16) + 4] = TERMINATED;
 	count = count + 1;
