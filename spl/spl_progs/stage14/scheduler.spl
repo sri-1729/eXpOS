@@ -3,12 +3,14 @@ pid = [SYSTEM_STATUS_TABLE + 1];
 
 multipush(BP);
 
+//getting address of process table and setting info
 alias currProcTable R1;
 currProcTable = PROCESS_TABLE + (pid * 16);
 [currProcTable + 12] = SP % 512;
 [currProcTable + 14] = PTBR;
 [currProcTable + 15] = PTLR;
 
+//move through all 16 process
 alias current R2;
 current = pid + 1;
 while(current < 16)do
@@ -23,6 +25,7 @@ if(current != 16)then
 	newpid = current;
 endif;
 
+//set SP to new kernel stack
 SP = [PROCESS_TABLE + (newpid * 16) + 11] * 512 + [PROCESS_TABLE + (newpid * 16) + 12];
 PTBR = [PROCESS_TABLE + (newpid * 16) + 14];
 PTLR = [PROCESS_TABLE + (newpid * 16) + 15];

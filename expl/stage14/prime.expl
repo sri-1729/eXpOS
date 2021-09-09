@@ -1,0 +1,24 @@
+int main()
+{
+decl
+	int current, prev, temp, flag;
+enddecl
+begin
+	current = 2;
+	while(current <= 100)do
+		prev = 2;
+		flag = 1;
+		while(prev < current)do
+			if(current % prev == 0)then
+				flag = 0;
+			endif;
+			prev = prev + 1;
+		endwhile;
+		if(flag == 1)then
+			temp = exposcall("Write", -2, current);
+		endif;
+		current = current + 1;
+	endwhile;
+end
+}
+

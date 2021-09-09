@@ -1,0 +1,30 @@
+//MOD_4
+
+
+alias funcNum R1;
+alias currID R2;
+
+
+//Terminal Write
+if(funcNum == 3)then
+
+multipush(R1, R2);
+R1 = 8;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+
+call MOD_0;
+
+multipop(R1, R2);
+
+print R3;
+
+multipush(R1, R2);
+R1 = 9;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+
+call MOD_0;
+
+multipop(R1, R2);
+
+return;
+endif;
