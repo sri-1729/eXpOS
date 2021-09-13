@@ -1,0 +1,44 @@
+alias func R1;
+alias first R2;
+
+if(func == GET_FREE_PAGE)then
+
+[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+while([SYSTEM_STATUS_TABLE + 2] == 0)do
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 4] = WAIT_TERMINAL;
+	multipush(R1, R2);
+	call MOD_5;
+	multipop(R1, R2);
+endwhile;
+
+[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+alias iter R3;
+while(iter < MAX_MEM_PAGE)do
+	if([MEMORY_FREE_LIST + iter] == 0)then
+		break;
+	endif;
+	iter = iter + 1;
+endwhile;
+
+R0 = iter;
+
+return;
+endif; 
+
+if(func == RELEASE_PAGE)then
+	[MEMORY_FREE_LIST + first] = [MEMORY_FREE_LIST + first] - 1;
+	if([MEMORY_FREE_LIST + first] == 0)then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	endif;
+	alias iter R4;
+	while(iter < 16)do
+		if([PROCESS_TABLE + (iter * 16) + 4] == WAIT_MEM)then
+			[PROCESS_TABLE + (iter *16) + 4] = READY;
+		endif;
+	iter = iter + 1;
+	endwhile;
+return;
+endif;

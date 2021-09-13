@@ -1,0 +1,10 @@
+int main(){
+decl
+	str s;
+endecl
+begin
+	read(s);
+	exposcall
+end
+
+}
