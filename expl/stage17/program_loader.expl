@@ -1,10 +1,12 @@
 int main(){
 decl
 	str s;
-endecl
+	int t;
+enddecl
 begin
-	read(s);
-	exposcall
+	t = exposcall("Read", -1, s);
+	t = exposcall("Exec", s);
+return 0;
 end
 
 }

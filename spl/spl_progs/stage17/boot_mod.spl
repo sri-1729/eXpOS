@@ -6,6 +6,11 @@ loadi(64,14);
 loadi(65, 7);
 loadi(66, 8);
 
+
+//load inode table
+loadi(59, 3);
+loadi(60, 4);
+
 //load code for scheduler
 loadi(50,63);
 loadi(51,64);
@@ -119,10 +124,17 @@ while (count < 16)do
 endwhile;
 
 count = 0;
+while(count < MAX_MEM_PAGE)do
+	[MEMORY_FREE_LIST + count] = 0;
+	count = count + 1;
+endwhile;
+
+count = 0;
 while(count < 84)do
 	[MEMORY_FREE_LIST + count] = 1;
 	count = count + 1;
 endwhile;
+
 
 [SYSTEM_STATUS_TABLE + 3] = 0;
 [SYSTEM_STATUS_TABLE + 2] = 45; 

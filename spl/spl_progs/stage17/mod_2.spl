@@ -16,13 +16,15 @@ endwhile;
 [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
 
 alias iter R3;
+iter = 0;
 while(iter < MAX_MEM_PAGE)do
 	if([MEMORY_FREE_LIST + iter] == 0)then
+		[MEMORY_FREE_LIST + iter] = 1;
 		break;
 	endif;
 	iter = iter + 1;
 endwhile;
-
+//print iter;
 R0 = iter;
 
 return;
