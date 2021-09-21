@@ -9,7 +9,7 @@ begin
 		prev = 2;
 		flag = 1;
 		while(prev < current)do
-			if(current % prev == 0)then
+			if((current % prev) == 0)then
 				flag = 0;
 			endif;
 			prev = prev + 1;
@@ -19,6 +19,7 @@ begin
 		endif;
 		current = current + 1;
 	endwhile;
+	return 0;
 end
 }
 

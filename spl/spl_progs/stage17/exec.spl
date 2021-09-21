@@ -43,7 +43,7 @@ multipop(R0, R1, R2, R3, R4, R5);
 R0 = [PROCESS_TABLE + (currId * 16) + 11];
 [MEMORY_FREE_LIST + R0] = 1;
 
-[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;//memory free count
 
 SP = R0*512 - 1;
 [PROCESS_TABLE + (currId * 16) + 4] = RUNNING;
