@@ -34,7 +34,6 @@ endwhile;
 [TERMINAL_STATUS_TABLE] = 1;	
 [TERMINAL_STATUS_TABLE + 1] = [SYSTEM_STATUS_TABLE + 1];
 
-breakpoint;
 return;
 endif;
 
@@ -59,6 +58,5 @@ endwhile;
 
 R0 = 0;
 
-breakpoint;
 return;
 endif;

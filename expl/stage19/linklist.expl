@@ -1,0 +1,54 @@
+type
+linklist{
+	int val;
+	linklist next;
+}
+endtype
+decl
+linklist insertToLinkList(linklist head, linklist toBeInserted);
+int display(linklist head);
+linklist h;
+enddecl
+linklist insertToLinkList(linklist head, linklist toBeInserted){
+	begin
+	if(head == null)then
+		head = toBeInserted;
+	else
+	head.next = insertToLinkList(head.next, toBeInserted);
+	endif;
+	return head;
+	end
+}
+int display(linklist head){
+	decl
+		int t;
+	enddecl
+	begin
+	if(head != null)then	
+		write(head.val);
+		t = display(head.next);
+	endif;
+	return 0;
+	end
+}
+int main(){
+decl
+	linklist x, head; 
+	int n, val, t;
+enddecl
+begin
+	read(n);
+	t = initialize();
+	h = null;
+	while(n == 0)do
+		read(val);
+		x = alloc();
+		x.val = val;
+		x.next = null;
+		h = insertToLinkList(h, x);
+		n = n - 1;
+	endwhile;
+	val = display(head);
+	return 0;
+end
+}

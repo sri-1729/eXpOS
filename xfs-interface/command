@@ -1,0 +1,5 @@
+load --module 2 ../spl/spl_progs/stage19/mod_2.xsm
+load --module 1 ../spl/spl_progs/stage19/mod_1.xsm
+load --module 7 ../spl/spl_progs/stage19/boot_mod.xsm
+load --int=9 ../spl/spl_progs/stage19/exec.xsm
+load --exhandler ../spl/spl_progs/stage19/exception.xsm
