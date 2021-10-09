@@ -2,9 +2,9 @@ alias usp R2;
 alias ppid R3;
 ppid = [SYSTEM_STATUS_TABLE + 1];
 usp = SP;
-[PROCESS_TABLE + [ppid + 1]*16 + 9] = 8;
-[PROCESS_TABLE + [ppid + 1]*16 + 13] = SP;
-SP = [PROCESS_TABLE + [ppid + 1]*16 + 11]*512 - 1;
+[PROCESS_TABLE + (ppid*16) + 9] = 8;
+[PROCESS_TABLE + (ppid*16) + 13] = SP;
+SP = [PROCESS_TABLE + (ppid*16) + 11]*512 - 1;
 
 //getting index of a unused process
 multipush(R2, R3);
@@ -42,6 +42,7 @@ if([PTBR + 4] == -1)then
 	endwhile;
 endif;
 
+//breakpoint;
 
 //new user stack pages for child		
 count = 0;
@@ -51,7 +52,7 @@ while(count < 2)do
 	call MOD_2;
 	multipop(R1, R2, R3, R4);
 	alias temp R5;
-	temp = PAGE_TABLE_BASE + (cpid * 20) + (count + 7)*2;
+	temp = PAGE_TABLE_BASE + (cpid * 20) + (count + 8)*2;
 	[temp] = R0;
 	[temp + 1] = "0110";
 	count = count + 1;
@@ -80,7 +81,7 @@ cp = PROCESS_TABLE + (cpid*16);
 [cp + 12] = 0;
 [cp + 11] = R0;
 [cp + 2] = ppid;
-[cp + 4] = "CREATED";
+[cp + 4] = CREATED;
 
 //setting disk map table of child process
 count = 0;
@@ -95,6 +96,7 @@ while(count < 10)do
 	count = count + 1;
 endwhile;
 
+//breakpoint;
 //set per process table
 
 
@@ -107,7 +109,7 @@ endwhile;
 //mapping page table
 cp = PAGE_TABLE_BASE + (cpid * 20);
 count = 0;
-while(count < 7)do
+while(count < 8)do
 	alias temp2 R7;
 	temp2 = count * 2;
 	[cp + temp2] = [PTBR + temp2];
@@ -122,25 +124,26 @@ endwhile;
 //copying user stack
 count = 0;
 while(count < 512)do
-	[[cp + 8]*512 + count] = [[PTBR + 8]*512 + count];
+	[[cp + 16]*512 + count] = [[PTBR + 16]*512 + count];
 	count = count + 1;
 endwhile;
 
 count = 0;
 while(count < 512)do
-	[[cp + 9]*512 + count] = [[PTBR + 9]*512 + count];
+	[[cp + 18]*512 + count] = [[PTBR + 18]*512 + count];
 	count = count + 1;
 endwhile;
 
 //storing BP at top of the kernel stack of child process
-[PROCESS_TABLE + (cpid * 16) + 11] = BP;
+[[PROCESS_TABLE + (cpid * 16) + 11]*512] = BP;
 
 //user return value child <- 0 and parent <- cpid
 alias cusp R7;
-cusp = [PROCESS_TABLE + (cpid * 16) + 11];
+cusp = [PROCESS_TABLE + (cpid * 16) + 13];
 [([cp + ((cusp - 1)/512)*2] * 512) + ((cusp-1)%512)] = 0;
 [([PTBR + ((usp - 1)/512)*2] * 512) + ((usp-1)%512)] = cpid;
 
 SP = usp;
+breakpoint;
 ireturn;
 
