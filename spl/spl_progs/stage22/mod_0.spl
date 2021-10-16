@@ -1,0 +1,106 @@
+//MOD_0
+
+alias funcNum R1;
+alias currPid R2;
+
+
+//acquire semaphore
+if(funcNum == ACQUIRE_SEMAPHORE)then
+	alias count R3;
+	count = 0;
+	while(count < MAX_SEM_COUNT)do
+		if([SEMAPHORE_TABLE + (count*4) + 1] == 0)then
+			break;
+		endif;
+	count = count + 1;
+	endwhile;
+	if(count == MAX_SEM_COUNT)then
+		R0 = -1;
+		return;
+	endif;
+	[SEMAPHORE_TABLE + (count * 4) + 1] = 1;
+	[SEMAPHORE_TABLE + (count * 4)] = -1;
+	R0 = count;
+	return;
+endif;
+
+//release semaphore
+if(funcNum == RELEASE_SEMAPHORE)then
+	alias sem R5;
+	sem = SEMAPHORE_TABLE + (R2 * 4);
+	if([sem] == R3)then
+		[sem] = -1;
+		alias count R4;
+		count = 0;
+		while(count < 16)do	
+		if([PROCESS_TABLE + (count * 16) + 4] == WAIT_SEMAPHORE)then
+			if([PROCESS_TABLE + (count * 16) + 5] == R2)then
+				[PROCESS_TABLE + (count * 16) + 4] = READY;
+			endif;
+		endif;
+		count = count + 1;
+		endwhile;
+	endif;
+	[sem + 1] = [sem + 1] - 1; 
+	R0 = 0;
+	return;
+endif;
+
+
+//acquire disk
+if(funcNum == ACQUIRE_DISK)then
+
+while([DISK_STATUS_TABLE] == 1)do
+	[PROCESS_TABLE + (currPid * 16) + 4] = WAIT_DISK;
+	multipush(R1, R2);
+	call MOD_5;
+	multipop(R1, R2);
+endwhile;
+
+
+[DISK_STATUS_TABLE] = 1;
+[DISK_STATUS_TABLE + 4] = currPid;
+
+return;
+endif;
+
+
+//acquire terminal
+if(funcNum == 8)then
+
+while([TERMINAL_STATUS_TABLE] == 1)do  //busy-loop
+	[PROCESS_TABLE + (currPid * 16) + 4] = WAIT_TERMINAL;
+	multipush(R1, R2);
+	call MOD_5;
+	multipop(R1, R2);
+endwhile;	
+
+[TERMINAL_STATUS_TABLE] = 1;	
+[TERMINAL_STATUS_TABLE + 1] = [SYSTEM_STATUS_TABLE + 1];
+
+return;
+endif;
+
+
+//release terminal
+if(funcNum == 9)then
+
+if(currPid != [TERMINAL_STATUS_TABLE + 1])then
+	R0 = -1;
+	return;
+endif;
+
+[TERMINAL_STATUS_TABLE] = 0;
+alias iter R4;
+iter = 0;
+while(iter < 16)do
+	if([PROCESS_TABLE + (iter * 16) + 4] == WAIT_TERMINAL)then
+		[PROCESS_TABLE + (iter * 16) + 4] = READY;
+	endif;
+	iter = iter + 1;
+endwhile;
+
+R0 = 0;
+
+return;
+endif;

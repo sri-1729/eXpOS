@@ -1,0 +1,79 @@
+alias phys R1;
+phys = [PTBR + ((SP/512)*2)]*512 + (SP % 512);
+alias pid R2;
+pid = [SYSTEM_STATUS_TABLE + 1];
+alias func R3;
+func = [phys - 5];
+alias upa R4;
+upa = [PROCESS_TABLE + (pid * 16) + 11]*512 + 496;
+
+
+[PROCESS_TABLE + (pid * 16) + 13] = SP;
+SP = [PROCESS_TABLE + (pid * 16) + 11]*512 - 1;
+
+//segment call
+if(func == 17)then
+[PROCESS_TABLE + (pid * 16) + 9] = 17; 
+alias count R5;
+count = 0;
+while(count < 8)do
+	if([upa + (count * 2)] == -1)then
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+if(count == 8)then
+	[phys - 1] = -1;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+
+[upa + (count * 2)] = 1;
+
+multipush(R1, R2, R3, R4, R5);
+R1 =  ACQUIRE_SEMAPHORE;
+R2 = pid;
+call MOD_0;
+multipop(R1, R2, R3, R4, R5);
+
+if(R0 == -1)then
+	[phys - 1] = -2;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+
+[upa + (count * 2) + 1] = R0;
+[phys - 1] = R0;
+endif;
+
+
+//release sem
+if(func == 18)then
+
+[PROCESS_TABLE + (pid * 16) + 9] = 18;
+if([phys - 4] < 0 || [phys - 4] > 7)then
+	[phys - 1] = -1;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+
+multipush(R1, R2, R3, R4);
+R1 = RELEASE_SEMAPHORE;
+R2 = [upa + ([phys - 4] * 2) + 1];
+R3 = pid;
+call MOD_0;
+multipop(R1, R2, R3, R4);
+
+[upa + [phys - 4]*2] = -1;
+[phys - 1] = 0;
+endif;
+
+
+[PROCESS_TABLE + (pid * 16) + 9] = 0;
+SP = [PROCESS_TABLE + (pid * 16) + 13];
+ireturn;
+

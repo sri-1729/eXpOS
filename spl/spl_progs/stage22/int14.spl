@@ -1,0 +1,88 @@
+alias phys R1;
+phys = [PTBR + ((SP/512)*2)]*512 + (SP % 512);
+alias pid R2;
+pid = [SYSTEM_STATUS_TABLE + 1];
+alias func R3;
+func = [phys - 5];
+alias upa R4;
+upa = [PROCESS_TABLE + (pid * 16) + 11]*512 + 496;
+
+
+[PROCESS_TABLE + (pid * 16) + 13] = SP;
+SP = [PROCESS_TABLE + (pid * 16) + 11]*512 - 1;
+
+
+if(func == 19)then
+
+if([phys - 4] < 0 || [phys - 4] > 7)then
+	[phys - 1] = -1;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+alias entry R5;
+entry = upa + [phys - 4]*2;
+
+while([SEMAPHORE_TABLE + ([entry + 1]*4)] != -1 || [SEMAPHORE_TABLE + ([entry + 1]*4)] != pid)do
+	[PROCESS_TABLE + (pid * 16) + 4] = WAIT_SEMAPHORE;
+	[PROCESS_TABLE + (pid * 16) + 5] = [entry + 1];
+	multipush(R1, R2, R3, R4, R5);
+	call MOD_5;
+	multipop(R1, R2, R3, R4, R5);
+endwhile;
+
+[SEMAPHORE_TABLE + ([entry + 1]*4)] = pid;
+[phys - 1] = 0;
+endif;
+
+if(func == 20)then
+
+[PROCESS_TABLE + (pid * 16) + 9] = 20;
+
+if([phys - 4] < 0 || [phys - 4] > 7)then
+	[phys - 1] = -1;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+
+alias entry R5;
+entry = upa + [phys - 4]*2;
+
+alias semTbEntry R6;
+semTbEntry = SEMAPHORE_TABLE + ([entry + 1] * 4);
+
+if([semTbEntry] != pid)then
+	[phys - 1] = -2;
+	[PROCESS_TABLE + (pid * 16) + 9] = 0;
+	SP = [PROCESS_TABLE + (pid * 16) + 13];
+	ireturn;
+endif;
+
+alias count R7;
+count = 0;
+while(count < 16)do
+	if([PROCESS_TABLE + (count * 16) + 4] == WAIT_SEMAPHORE)then
+		if([PROCESS_TABLE + (count * 16) + 5] == [entry + 1])then
+			[PROCESS_TABLE + (count * 16) + 4] = READY;
+		endif;
+	endif;
+count = count + 1;
+endwhile;
+
+[phys - 1] = 0;
+endif;
+
+[PROCESS_TABLE + (pid * 16) + 9] = 0;
+SP = [PROCESS_TABLE + (pid * 16) + 13];
+ireturn;
+
+
+
+
+
+
+
+
+	
+	

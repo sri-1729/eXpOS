@@ -1,0 +1,160 @@
+alias usp R2;
+alias ppid R3;
+ppid = [SYSTEM_STATUS_TABLE + 1];
+usp = SP;
+[PROCESS_TABLE + (ppid*16) + 9] = 8;
+[PROCESS_TABLE + (ppid*16) + 13] = SP;
+SP = [PROCESS_TABLE + (ppid*16) + 11]*512 - 1;
+
+//getting index of a unused process
+multipush(R2, R3);
+R1 = GET_PCB_ENTRY;
+call MOD_1;
+multipop(R2, R3);
+
+alias ret R0;
+alias cpid R4;
+cpid = ret;
+
+//check whether all 16 proc is used
+if(ret == -1)then
+	[([PTBR + ((usp - 1)/512)*2] * 512) + ((usp-1)%512)] = -1;
+	SP = usp;
+	ireturn;
+endif;
+
+alias count R1;
+
+count = 0;
+
+//if heap of parent not allocated
+if([PTBR + 4] == -1)then
+	while(count < 2)do
+		multipush(R1, R2, R3, R4);
+		R1 = GET_FREE_PAGE;
+		call MOD_2;
+		multipop(R1, R2, R3, R4);
+		alias temp R5;
+		temp = PTBR + (count + 2)*2;
+		[temp] = R0;
+		[temp + 1] = "0110";
+		count = count + 1;
+	endwhile;
+endif;
+
+//breakpoint;
+
+//new user stack pages for child		
+count = 0;
+while(count < 2)do
+	multipush(R1, R2, R3, R4);
+	R1 = GET_FREE_PAGE;
+	call MOD_2;
+	multipop(R1, R2, R3, R4);
+	alias temp R5;
+	temp = PAGE_TABLE_BASE + (cpid * 20) + (count + 8)*2;
+	[temp] = R0;
+	[temp + 1] = "0110";
+	count = count + 1;
+endwhile;
+
+//new user page area
+multipush(R1, R2, R3, R4);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop(R1, R2, R3, R4);
+
+//copy userid, swap, ua swap stats, inode index, UPTR
+alias pp R5;
+alias cp R6;
+pp = PROCESS_TABLE + (ppid*16);
+cp = PROCESS_TABLE + (cpid*16);
+[cp + 3] = [pp + 3];
+[cp + 6] = [pp + 6];
+[cp + 7] = [pp + 7];
+[cp + 10] = [pp + 10];
+[cp + 13] = usp;
+
+//setting tick, ppid, tick, KPTR, status, mode
+[cp + 9] = 0;
+[cp] = 0;
+[cp + 12] = 0;
+[cp + 11] = R0;
+[cp + 2] = ppid;
+[cp + 4] = CREATED;
+
+//setting disk map table of child process
+count = 0;
+while(count < 10)do
+	alias temp1 R7;
+	temp1 = DISK_MAP_TABLE + (cpid * 10) + count;
+	if(count > 3 && count < 8)then
+		[temp1] = [DISK_MAP_TABLE + (ppid * 10) + count];
+	else
+		[temp1] = -1;
+	endif;
+	count = count + 1;
+endwhile;
+
+//breakpoint;
+//set per process table
+
+
+count = 0;
+while(count < 8)do
+	alias temp3 R7;
+	temp3 = [cp + 11]*512 + 496 + (count*2);
+	alias temp4 R8;
+	temp4 = [pp + 11]*512 + 496 + (count*2);
+	[temp3] = [temp4];
+	[temp3 + 1] = [temp4 + 1];
+	if([temp3] == 1)then
+		alias temp5 R9;
+		temp5 = SEMAPHORE_TABLE + ([temp3 + 1]*4); 
+		[temp5 + 1] = [temp5 + 1] + 1;
+	endif;
+	count = count + 1;
+endwhile;
+
+//mapping page table
+cp = PAGE_TABLE_BASE + (cpid * 20);
+count = 0;
+while(count < 8)do
+	alias temp2 R7;
+	temp2 = count * 2;
+	[cp + temp2] = [PTBR + temp2];
+	[cp + temp2 + 1] = [PTBR + temp2 + 1];
+	alias temp3 R8;
+	temp3 = MEMORY_FREE_LIST + [PTBR + temp2];
+	[temp3] = [temp3] + 1;
+	count = count + 1;
+endwhile;
+
+
+//copying user stack
+count = 0;
+while(count < 512)do
+	[[cp + 16]*512 + count] = [[PTBR + 16]*512 + count];
+	count = count + 1;
+endwhile;
+
+count = 0;
+while(count < 512)do
+	[[cp + 18]*512 + count] = [[PTBR + 18]*512 + count];
+	count = count + 1;
+endwhile;
+
+//storing BP at top of the kernel stack of child process
+[[PROCESS_TABLE + (cpid * 16) + 11]*512] = BP;
+
+//user return value child <- 0 and parent <- cpid
+alias cusp R7;
+cusp = [PROCESS_TABLE + (cpid * 16) + 13];
+[([cp + ((cusp - 1)/512)*2] * 512) + ((cusp-1)%512)] = 0;
+[([PTBR + ((usp - 1)/512)*2] * 512) + ((usp-1)%512)] = cpid;
+
+[pp + 9] = 0;
+SP = usp;
+breakpoint;
+ireturn;
+

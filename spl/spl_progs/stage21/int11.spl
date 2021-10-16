@@ -1,0 +1,63 @@
+alias physadd R1;
+physadd = [PTBR +(SP/512)*2]*512 + SP%512;
+alias func R2;
+func = [physadd - 5];
+alias currPid R3;
+currPid = [SYSTEM_STATUS_TABLE + 1]; 
+alias prTable R4;
+prTable = PROCESS_TABLE + (currPid * 16);
+
+[PROCESS_TABLE + (currPid*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 11]*512 - 1;
+
+
+
+if(func == 13)then
+	
+[prTable + 9] = 13;
+alias arg R5;
+arg = [physadd - 4];
+
+if(arg == currPid || (arg < 0 && arg > 15) || [PROCESS_TABLE + (arg * 16) + 4] == TERMINATED)then
+	[physadd - 1] = -1;
+	[prTable + 9] = 0;
+	SP = [prTable + 13];
+	ireturn;
+endif;
+
+[prTable + 4] = WAIT_PROCESS;
+[prTable + 5] = arg;
+
+multipush(R1, R2, R3, R4);
+call MOD_5;
+multipop(R1, R2, R3, R4);
+
+endif;
+
+if(func == 14)then
+
+[prTable + 9] = 14;
+alias iter R5;
+iter = 0;
+while(iter < 16)do
+	if([PROCESS_TABLE + (iter * 16) + 4] == WAIT_PROCESS && [PROCESS_TABLE + (iter * 16) + 5] == currPid)then
+		[PROCESS_TABLE + (iter * 16) + 4] = READY;
+	endif;
+	iter = iter + 1;
+endwhile;
+endif;
+
+if(func == 11)then
+	[prTable + 9] = 11;
+	[physadd - 1] = currPid;
+endif;
+
+if(func == 12)then
+	[prTable + 9] = 12;
+	[physadd - 1] = [prTable + 2];
+endif;
+
+[prTable + 9] = 0;
+SP = [prTable + 13];
+ireturn;
+

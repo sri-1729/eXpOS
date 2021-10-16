@@ -87,7 +87,7 @@ cp = PROCESS_TABLE + (cpid*16);
 count = 0;
 while(count < 10)do
 	alias temp1 R7;
-	temp1 = [DISK_MAP_TABLE + (cpid * 10) + count];
+	temp1 = DISK_MAP_TABLE + (cpid * 10) + count;
 	if(count > 3 && count < 8)then
 		[temp1] = [DISK_MAP_TABLE + (ppid * 10) + count];
 	else
@@ -143,6 +143,7 @@ cusp = [PROCESS_TABLE + (cpid * 16) + 13];
 [([cp + ((cusp - 1)/512)*2] * 512) + ((cusp-1)%512)] = 0;
 [([PTBR + ((usp - 1)/512)*2] * 512) + ((usp-1)%512)] = cpid;
 
+[pp + 9] = 0;
 SP = usp;
 breakpoint;
 ireturn;

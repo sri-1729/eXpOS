@@ -1,16 +1,19 @@
 int main(){
 decl
-	int ret, t;
+	int ret, t, s;
 enddecl
 
 
 begin
+	s = 10;
 	ret = exposcall("Fork");
 	if(ret == 0)then
-	t = exposcall("Exec", "even.xsm");
-	else
-	t = exposcall("Exec", "odd.xsm");
+	s = s + 5;
+	t = exposcall("Write", -2, s);
+	t = exposcall("Exec", "sort.xsm");
 	endif;
+	s = s + 20;
+	t = exposcall("Write", -2, s);
 	return 0;
 
 end
