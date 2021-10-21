@@ -21,6 +21,7 @@ if(funcNum == ACQUIRE_SEMAPHORE)then
 	[SEMAPHORE_TABLE + (count * 4) + 1] = 1;
 	[SEMAPHORE_TABLE + (count * 4)] = -1;
 	R0 = count;
+	breakpoint;
 	return;
 endif;
 
@@ -43,6 +44,7 @@ if(funcNum == RELEASE_SEMAPHORE)then
 	endif;
 	[sem + 1] = [sem + 1] - 1; 
 	R0 = 0;
+	breakpoint;
 	return;
 endif;
 
@@ -84,9 +86,10 @@ endif;
 
 //release terminal
 if(funcNum == 9)then
-
 if(currPid != [TERMINAL_STATUS_TABLE + 1])then
 	R0 = -1;
+	print "hi";
+	breakpoint;
 	return;
 endif;
 

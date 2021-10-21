@@ -46,7 +46,7 @@ if(R0 == -1)then
 endif;
 
 [upa + (count * 2) + 1] = R0;
-[phys - 1] = R0;
+[phys - 1] = count;
 endif;
 
 
@@ -62,13 +62,14 @@ if([phys - 4] < 0 || [phys - 4] > 7)then
 endif;
 
 multipush(R1, R2, R3, R4);
-R1 = RELEASE_SEMAPHORE;
-R2 = [upa + ([phys - 4] * 2) + 1];
 R3 = pid;
+R2 = [upa + ([phys - 4] * 2) + 1];
+R1 = RELEASE_SEMAPHORE;
 call MOD_0;
 multipop(R1, R2, R3, R4);
 
-[upa + [phys - 4]*2] = -1;
+[upa + ([phys - 4]*2)] = -1;
+breakpoint;
 [phys - 1] = 0;
 endif;
 

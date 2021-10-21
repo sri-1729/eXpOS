@@ -178,7 +178,7 @@ while(count < MAX_MEM_PAGE)do
 endwhile;
 
 count = 0;
-while(count < 84)do
+while(count < 83)do
 	[MEMORY_FREE_LIST + count] = 1;
 	count = count + 1;
 endwhile;

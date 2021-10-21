@@ -6,22 +6,20 @@ if(func == FREE_USER_AREA_PAGE)then
 alias upa R3;
 upa = [PROCESS_TABLE + (pid * 16) + 11];
 alias prt R4;
-prt = upa + 496;
+prt = (upa*512) + 496;
 alias count R5;
 count = 0;
 while(count < 8)do
-	if([prt + (count*2)] == 1)then
-		multipush(R1, R2, R3, R4, R5);
-		R1 = RELEASE_SEMAPHORE;
-		R3 = pid; 
-		R2 = [prt + (count*2) + 1];
-		call MOD_0;
-		multipop(R1, R2, R3, R4, R5);
-	endif;
-	count = count + 1;
+        if([prt + (count*2)] == 1)then
+                multipush(R1, R2, R3, R4, R5);
+                R1 = RELEASE_SEMAPHORE;
+                R3 = pid; 
+                R2 = [prt + (count*2) + 1];
+                call MOD_0;
+                multipop(R1, R2, R3, R4, R5);
+        endif;
+        count = count + 1;
 endwhile;
-
-
 multipush(R1, R2, R3);
 R1 = RELEASE_PAGE;
 R2 = upa;
@@ -34,6 +32,22 @@ endif;
 
 
 if(func == EXIT_PROCESS)then
+
+if([PROCESS_TABLE + (pid*16) + 9] != 9)then
+	alias count R3;
+	count = 0;
+	while(count < 16)do
+		alias prTable R4;
+		prTable = PROCESS_TABLE + (count * 16);
+		if([prTable + 4] == WAIT_PROCESS && [prTable + 5] == pid)then
+			[prTable + 4] = READY;
+		endif;
+		if([prTable + 2] == pid)then
+			[prTable + 2] = -1;
+		endif;
+		count = count + 1;
+	endwhile;
+endif;
 
 multipush(R1, R2);
 R1 = FREE_PAGE_TABLE;

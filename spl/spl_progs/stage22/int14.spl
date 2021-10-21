@@ -12,6 +12,7 @@ upa = [PROCESS_TABLE + (pid * 16) + 11]*512 + 496;
 SP = [PROCESS_TABLE + (pid * 16) + 11]*512 - 1;
 
 
+//sem lock
 if(func == 19)then
 
 if([phys - 4] < 0 || [phys - 4] > 7)then
@@ -23,7 +24,7 @@ endif;
 alias entry R5;
 entry = upa + [phys - 4]*2;
 
-while([SEMAPHORE_TABLE + ([entry + 1]*4)] != -1 || [SEMAPHORE_TABLE + ([entry + 1]*4)] != pid)do
+while([SEMAPHORE_TABLE + ([entry + 1]*4)] != -1 && [SEMAPHORE_TABLE + ([entry + 1]*4)] != pid)do
 	[PROCESS_TABLE + (pid * 16) + 4] = WAIT_SEMAPHORE;
 	[PROCESS_TABLE + (pid * 16) + 5] = [entry + 1];
 	multipush(R1, R2, R3, R4, R5);
@@ -35,6 +36,8 @@ endwhile;
 [phys - 1] = 0;
 endif;
 
+
+//semunlock
 if(func == 20)then
 
 [PROCESS_TABLE + (pid * 16) + 9] = 20;
@@ -58,6 +61,9 @@ if([semTbEntry] != pid)then
 	SP = [PROCESS_TABLE + (pid * 16) + 13];
 	ireturn;
 endif;
+
+
+[semTbEntry] = -1;
 
 alias count R7;
 count = 0;
