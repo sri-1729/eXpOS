@@ -1,0 +1,19 @@
+int main(){
+decl 
+	int t, fd, eof;
+	string file;
+	string word;
+enddecl
+begin
+	t = exposcall("Read", -1, file);
+	fd = exposcall("Open", file);
+	eof = 0;
+	while(eof != -2)do
+		eof = exposcall("Read",fd, word);
+		t = exposcall("Write", -2, word);
+	endwhile;
+	t = exposcall("Close",fd);
+return 0;
+end
+
+}
