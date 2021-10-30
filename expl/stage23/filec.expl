@@ -1,0 +1,12 @@
+int main(){
+decl
+	int t, x;
+	string file;
+enddecl
+begin
+	t = exposcall("Read", -1, file);
+	t = exposcall("Read", -1, x);
+	t = exposcall("Create", file, x);
+	return 0;
+end
+}

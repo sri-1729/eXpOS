@@ -1,0 +1,220 @@
+//load library
+loadi(63,13);
+loadi(64,14);
+
+//load int15
+loadi(12,25);
+loadi(13,26);
+
+//load mod_3
+loadi(46,59);
+loadi(47,60);
+
+//load int4
+loadi(10,23);
+loadi(11,24);
+//load rootfile
+loadi(62, 5);
+
+//load code for init
+loadi(65, 7);
+loadi(66, 8);
+
+//load int11
+loadi(24, 37);
+loadi(25, 38);
+
+//load shutdown
+loadi(32, 45);
+loadi(33, 46);
+
+//load int13
+loadi(28, 41);
+loadi(29, 42);
+
+//load int14
+loadi(30, 43);
+loadi(31, 44);
+
+//load fork system call
+loadi(18,31);
+loadi(19,32);
+
+//load inode table
+loadi(59, 3);
+loadi(60, 4);
+
+//load code for scheduler
+loadi(50,63);
+loadi(51,64);
+
+//load code for PID2
+loadi(83,69);
+loadi(84,70);
+
+//load exception and interrupt
+loadi(22, 35);
+loadi(23, 36);
+loadi(2, 15);
+loadi(3, 16);
+
+//loading timer handler
+loadi(4, 17);
+loadi(5, 18);
+
+//loading writing interrupt
+loadi(16, 29);
+loadi(17, 30);
+
+//loading console handler
+loadi(8, 21);
+loadi(9, 22);
+
+//loading reading handler
+loadi(14, 27);
+loadi(15, 28);
+
+//loading resource management module
+loadi(40, 53);
+loadi(41, 54);
+
+//loading device management module
+loadi(48, 61);
+loadi(49, 62);
+
+//loading process module
+loadi(42, 55);
+loadi(43, 56);
+
+//loading memory module
+loadi(44, 57);
+loadi(45, 58);
+
+//loading exec sys call
+loadi(20, 33);
+loadi(21, 34);
+
+//loading disk interrupt module
+loadi(6, 19);
+loadi(7, 20);
+
+//loading diskmaptable
+loadi(61,2);
+
+//intializing semaphore
+alias entry R1;
+
+entry = 0;
+while(entry < MAX_SEM_COUNT)do
+	[SEMAPHORE_TABLE + (entry*4)] = -1;
+	[SEMAPHORE_TABLE + (entry*4) + 1] = 0;
+	entry = entry + 1;
+endwhile;
+
+[DISK_STATUS_TABLE] = 0;
+[TERMINAL_STATUS_TABLE] = 0;
+
+//for init process
+PTBR=PAGE_TABLE_BASE + 20;
+PTLR=10;//last pltr address 19
+
+//Allocation of page user table area for init
+[(PROCESS_TABLE + 16) + 11] = 80;
+[(PROCESS_TABLE + 16) + 1] = 1;
+[SYSTEM_STATUS_TABLE + 1] = 1;
+[(PROCESS_TABLE + 16) + 14] = PTBR;
+[(PROCESS_TABLE + 16) + 15] = PTLR;
+[(PROCESS_TABLE + 16) + 13] = 8*512; 
+[(PROCESS_TABLE + 16) + 4] = CREATED;
+[(PROCESS_TABLE + 16) + 12] = 0;
+[(PROCESS_TABLE + 16) + 3] = 1;
+
+//PTBR Table
+ 
+//lib
+[PTBR+0] = 63;
+[PTBR+1] = "0100";
+[PTBR+2] = 64;
+[PTBR+3] = "0100";
+
+//heap
+[PTBR+4] = 78;
+[PTBR+5] = "0110";
+[PTBR+6] = 79;
+[PTBR+7] = "0110";
+
+//code segment
+[PTBR+8] = 65;
+[PTBR+9] = "0100";
+[PTBR+10] = 66;
+[PTBR+11] = "0100";
+[PTBR+12] = -1;
+[PTBR+13] = "0000";
+[PTBR+14] = -1;
+[PTBR+15] = "0000";
+
+//stack segment
+
+[PTBR+16] = 76;
+[PTBR+17] = "0110";
+[PTBR+18] = 77;
+[PTBR+19] = "0110";
+//file status table initialization
+R0 = 0;
+
+R0 = 0;
+while(R0 < 4)do
+	[BUFFER_TABLE + (R0 * 4) + 0] = -1;
+	[BUFFER_TABLE + (R0 * 4) + 1] = 0;
+	[BUFFER_TABLE + (R0 * 4) + 2] = -1;
+	[BUFFER_TABLE + (R0 * 4) + 3] = -1;
+	R0 = R0 + 1;
+endwhile;
+
+//pre-process table
+R0 = 496;
+while(R0 < 512)do
+	[80*512 + R0] = -1;
+	R0 = R0 + 1;
+endwhile;
+	
+//disk map table entry for init
+R0 = 0;
+while(R0 < 10)do
+	[DISK_MAP_TABLE + 10 + R0] = -1;
+	R0 = R0 + 1;
+endwhile;
+
+
+[76*512] = [65*512 + 1];
+alias count R0;
+count = 2;
+while (count < 16)do
+	[PROCESS_TABLE + (count * 16) + 4] = TERMINATED;
+	count = count + 1;
+endwhile;
+count = 0;
+while(count < MAX_MEM_PAGE)do
+	[MEMORY_FREE_LIST + count] = 0;
+	count = count + 1;
+endwhile;
+count = 0;
+while(count < 83)do
+	[MEMORY_FREE_LIST + count] = 1;
+	count = count + 1;
+endwhile;
+
+R0 = 0;
+while(R0 < 60)do
+	[FILE_STATUS_TABLE + (R0 * 4) + 0] = -1;
+	[FILE_STATUS_TABLE + (R0 * 4) + 1] = -1;
+	breakpoint;
+	[FILE_STATUS_TABLE + (R0 * 4) + 2] = -1;
+	[FILE_STATUS_TABLE + (R0 * 4) + 3] = -1;
+	R0 = R0 + 1;
+endwhile;
+
+breakpoint;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+[SYSTEM_STATUS_TABLE + 2] = 45; 
+return;

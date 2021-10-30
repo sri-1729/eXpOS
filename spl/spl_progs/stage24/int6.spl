@@ -1,0 +1,110 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 7;
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]*512 - 1;
+
+alias physPage R1;
+alias offset R2;
+alias final R3;
+
+physPage = [PTBR + 2 * ((userSP-4) / 512)];
+offset = (userSP -4) % 512;
+final = (physPage*512) + offset;
+
+alias value R4;
+value = [final];
+
+if(value == -1)then
+	alias addr R5;
+	addr = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+	multipush(R0, R1, R2, R3, R4, R5);
+	R1 = 4;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	R3 = addr;
+	call MOD_4;
+	multipop(R0, R1, R2, R3, R4, R5);
+	alias physicalAddrRetVal R6;
+	physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = 0;
+else
+	alias procTable R1;
+	procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+	alias phys R2;
+	phys = [PTBR + (userSP / 512)*2] + (userSP % 512);
+	if([phys - 4] < 0 || [phys - 4] > 7)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	alias pptEntry R3;
+	pptEntry = [procTable + 11]*512 + 496 + ([phys - 4]*2);
+	if([pptEntry] == -1 || [pptEntry] != FILE)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	alias openEntry R4; 
+	openEntry = [pptEntry + 1];
+	alias iindex R5;
+	iindex = [OPEN_FILE_TABLE + (openEntry * 4)];
+	multipush(R1, R2, R3, R4, R5);
+	R1 = ACQUIRE_INODE;
+	R2 = iindex;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	multipop(R1, R2, R3, R4, R5);
+	if(R0 == -1)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	alias pAddOfVar R6;
+	pAddOfVar = [PTBR + ([phys - 3] / 512) * 2]*512 + ([phys - 3] % 512);
+	alias lseek R7;
+	lseek = OPEN_FILE_TABLE + (openEntry * 4) + 2;
+	if(iindex == INODE_ROOT)then
+		if([lseek] == 480)then
+			[phys - 1] = -2;
+			[procTable + 9] = 0;
+			SP = [procTable + 13];
+			ireturn;
+		endif;
+		[pAddOfVar] = [ROOT_FILE + [lseek]];
+		[lseek] = [lseek] + 1;
+	else
+		if([lseek] == [INODE_TABLE + (iindex * 16) + 2])then
+			[phys - 1] = -2;
+			[procTable + 9] = 0;
+			SP = [procTable + 13];
+			ireturn;
+		endif;
+		alias blocknum R8;
+		blocknum = [INODE_TABLE + (iindex * 16) + 8 + ([lseek] / 512)];
+		multipush(R1, R2, R3, R4, R5, R6, R7, R8);
+		R1 = BUFFERED_READ;
+		R2 = blocknum;
+		R3 = [lseek] % 512;
+		R4 = pAddOfVar;
+		call MOD_3;
+		multipop(R1, R2, R3, R4, R5, R6, R7, R8);
+		[lseek] = [lseek] + 1;
+		multipush(R1, R2);
+		R1 = RELEASE_INODE;
+		R2 = iindex;
+		R3 = [SYSTEM_STATUS_TABLE + 1];
+		call MOD_0;
+		multipop(R1, R2);
+		[phys - 1] = 0;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;	
+	endif;
+endif;
+
+SP = userSP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;  
+ireturn;

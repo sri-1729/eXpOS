@@ -1,0 +1,49 @@
+alias procTable R1;
+procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+[procTable + 9] = 21;
+alias phys R2;
+phys = [PTBR + (SP/512)*2]*512 + (SP % 512);
+[procTable + 13] = SP;
+SP = [procTable + 11]*512 - 1;
+
+if([procTable + 3] != 1)then
+	[phys - 1] = -1;
+	SP = [procTable + 13];
+	ireturn;
+endif;
+
+//commit inode table, root file and disk free list
+//inode table
+multipush(R1, R2);
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 59;
+R4 = 3;
+call MOD_4;
+multipop(R1, R2);
+multipush(R1, R2);
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 60;
+R4 = 4;
+call MOD_4;
+multipop(R1, R2);
+//root file
+multipush(R1, R2);
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 62;
+R4 = 5;
+call MOD_4;
+multipop(R1, R2);
+
+//disk free list
+multipush(R1, R2);
+R1 = DISK_STORE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 61;
+R4 = 2;
+call MOD_4;
+multipop(R1, R2);
+
+halt;

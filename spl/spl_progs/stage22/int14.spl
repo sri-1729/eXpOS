@@ -14,7 +14,7 @@ SP = [PROCESS_TABLE + (pid * 16) + 11]*512 - 1;
 
 //sem lock
 if(func == 19)then
-
+//validation of sem descriptor
 if([phys - 4] < 0 || [phys - 4] > 7)then
 	[phys - 1] = -1;
 	[PROCESS_TABLE + (pid * 16) + 9] = 0;
@@ -54,7 +54,7 @@ entry = upa + [phys - 4]*2;
 
 alias semTbEntry R6;
 semTbEntry = SEMAPHORE_TABLE + ([entry + 1] * 4);
-
+//the process which locked should unlock if not some error
 if([semTbEntry] != pid)then
 	[phys - 1] = -2;
 	[PROCESS_TABLE + (pid * 16) + 9] = 0;

@@ -30,6 +30,7 @@ if(count == 8)then
 	ireturn;
 endif;
 
+//store semaphore as resource identifier
 [upa + (count * 2)] = 1;
 
 multipush(R1, R2, R3, R4, R5);
@@ -38,6 +39,7 @@ R2 = pid;
 call MOD_0;
 multipop(R1, R2, R3, R4, R5);
 
+//if no free entry for semaphore
 if(R0 == -1)then
 	[phys - 1] = -2;
 	[PROCESS_TABLE + (pid * 16) + 9] = 0;

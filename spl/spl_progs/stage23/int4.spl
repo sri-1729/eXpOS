@@ -1,0 +1,191 @@
+alias procTable R1;
+alias usersp R5;
+R1 = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1])*16;
+[procTable + 13] = SP;
+usersp = SP;
+SP = [procTable + 11]*512 - 1;
+
+alias iindex R2;
+alias count R3;
+alias phys R4;
+phys = [PTBR + (usersp / 512)*2]*512 + (usersp % 512);
+
+//CREATE SYSTEM CALL
+if([phys - 5] == 1)then
+breakpoint;
+[procTable + 9] = 1;
+//check in inode entry
+count = 0;
+iindex = -1;
+while(count < MAX_FILE_NUM)do
+	if([INODE_TABLE + (count * 16) + 1] == [phys - 4])then
+		iindex = count;
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+//check whether file already exists
+if(iindex != -1)then
+	[phys - 1] = 0;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+//get free inode entry
+count = 0;
+iindex = -1;
+while(count < MAX_FILE_NUM)do
+	if([INODE_TABLE + (count * 16) + 1] == -1)then
+		iindex = count;
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+//check whether free entry is there
+if(iindex == -1)then
+	[phys - 1] = -1;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+	
+//set the file name, file size, file type, userid. permission
+alias ientry R6;
+R6 = INODE_TABLE + (iindex * 16);
+[ientry + 1] = [phys - 4];
+[ientry + 2] = 0;
+[ientry + 0] = DATA;
+[ientry + 3] = [procTable + 3];
+[ientry + 4] = [phys - 3];
+
+//set the disk block
+count = 0;
+while(count < 4)do
+	[ientry + (count + 8)] = -1;
+	count = count + 1;
+endwhile;
+
+//update root file
+[ROOT_FILE + (iindex * 8) + 0] = [ientry + 1];
+[ROOT_FILE + (iindex * 8) + 1] = [ientry + 2];
+[ROOT_FILE + (iindex * 8) + 2] = [ientry + 0];
+[ROOT_FILE + (iindex * 8) + 3] = [USER_TABLE + [ientry + 3]*2 + 0];
+[ROOT_FILE + (iindex * 8) + 4] = [ientry + 4];
+
+[procTable + 9] = 0;
+SP = [procTable + 13];
+breakpoint;
+ireturn;
+
+endif;
+
+//DELETE SYSTEM CALL
+if([phys - 5] == 4)then
+
+[procTable + 9] = 4;
+
+//loop through inode table
+count = 0;
+iindex = -1;
+while(count < MAX_FILE_NUM)do
+	if([INODE_TABLE + (count * 16) + 1] == [phys - 4])then
+		iindex = count;
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+//check whether file already exists
+if(iindex == -1)then
+	[phys - 1] = 0;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+//data file checking
+if([INODE_TABLE + (iindex * 16) + 0] != DATA)then
+	[phys - 1] = -1;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+alias ientry R6;
+ientry = INODE_TABLE + (iindex * 16);
+//exclusive perimission checking
+if([ientry + 4] == 0)then
+	if([ientry + 3] != 1 && [ientry + 3] != [procTable + 3])then
+		[phys - 1] = -1;
+		SP = [procTable + 13];
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+endif;
+
+breakpoint;
+//call acquire inode
+multipush(R1, R2, R3, R4, R5, R6);
+R1 = ACQUIRE_INODE;
+R2 = iindex;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5, R6);
+
+//check whether some other process is using the file
+if([FILE_STATUS_TABLE + (iindex * 4) + 1] != -1)then
+	[phys - 1] = -2;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+//each disk block check buffer table and release block
+count = 0;
+while(count < 4)do
+	alias btable R7;
+	btable = BUFFER_TABLE + (([ientry + 8 + count] % 4) * 4);
+	if([ientry + 8 + count] == [btable + 0])then
+		if([btable + 1] == 1)then
+			[btable + 1] = 0;
+		endif;
+	endif;
+	multipush(R1, R2, R3, R4, R5, R6, R7);
+	R1 = RELEASE_BLOCK;
+	R2 = [ientry + 8 + count];
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	call MOD_2;
+	multipop(R1, R2, R3, R4, R5, R6, R7);
+	count = count + 1;
+endwhile;
+
+//invalidating inode table
+count = 0;
+while(count < 16)do
+	[ientry + count] = -1;
+	count = count + 1;
+endwhile;
+
+//update root file
+[ROOT_FILE + (iindex * 8) + 0] = -1;
+[ROOT_FILE + (iindex * 8) + 1] = -1;
+[ROOT_FILE + (iindex * 8) + 2] = -1;
+[ROOT_FILE + (iindex * 8) + 3] = -1;
+[ROOT_FILE + (iindex * 8) + 4] = -1;
+
+//call release inode
+multipush(R1, R2, R3, R4, R5, R6);
+R1 = RELEASE_INODE;
+R2 = iindex;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5, R6);
+
+[phys - 1] = 0;
+SP = [procTable + 13];
+[procTable + 9] = 0;
+ireturn;
+endif;
