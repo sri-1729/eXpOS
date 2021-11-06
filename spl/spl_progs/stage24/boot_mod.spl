@@ -162,12 +162,21 @@ PTLR=10;//last pltr address 19
 //file status table initialization
 R0 = 0;
 
+//buffer table initialization
 R0 = 0;
 while(R0 < 4)do
 	[BUFFER_TABLE + (R0 * 4) + 0] = -1;
 	[BUFFER_TABLE + (R0 * 4) + 1] = 0;
 	[BUFFER_TABLE + (R0 * 4) + 2] = -1;
 	[BUFFER_TABLE + (R0 * 4) + 3] = -1;
+	R0 = R0 + 1;
+endwhile;
+
+//open file table initialization
+R0 = 0;
+while(R0 < MAX_OPENFILE_NUM)do
+	[OPEN_FILE_TABLE + (R0 * 4) + 0] = -1;
+	[OPEN_FILE_TABLE + (R0 * 4) + 1] = 0;
 	R0 = R0 + 1;
 endwhile;
 

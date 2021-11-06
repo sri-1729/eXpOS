@@ -85,6 +85,8 @@ endif;
 
 if(func == RELEASE_BLOCK)then
 
+print "releaseb";
+print R2;
 [DISK_FREE_LIST + R2] = [DISK_FREE_LIST + R2] - 1;
 return;
 

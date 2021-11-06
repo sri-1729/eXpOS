@@ -11,7 +11,7 @@ if([phys - 5] == 2)then
 alias prtEntry R3;
 prtEntry = 0;
 alias res R4;
-
+breakpoint;
 //search for pre process resource entry in the process
 res = [procTable + 11]*512 + 496;
 while(prtEntry < 8)do
@@ -58,6 +58,7 @@ endif;
 [phys - 1] = prtEntry;
 [procTable + 9] = 0;
 SP = [procTable + 13];
+breakpoint;
 ireturn;
 endif;
 

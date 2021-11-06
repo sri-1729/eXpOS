@@ -32,7 +32,7 @@ else
 	alias procTable R1;
 	procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
 	alias phys R2;
-	phys = [PTBR + (userSP / 512)*2] + (userSP % 512);
+	phys = [PTBR + ([procTable + 13] / 512)*2]*512 + ([procTable + 13] % 512);
 	if([phys - 4] < 0 || [phys - 4] > 7)then
 		[phys - 1] = -1;
 		[procTable + 9] = 0;
@@ -63,7 +63,15 @@ else
 		ireturn;
 	endif;
 	alias pAddOfVar R6;
+	//extract logical address
 	pAddOfVar = [PTBR + ([phys - 3] / 512) * 2]*512 + ([phys - 3] % 512);
+	//extract physical address
+	//print "sri";
+	//print pAddOfVar;
+	//print [phys - 5];
+	//print [phys - 4];
+	//print [phys - 3];
+	//pAddOfVar = [PTBR + (pAddOfVar / 512)*2]*512 + (pAddOfVar % 512);
 	alias lseek R7;
 	lseek = OPEN_FILE_TABLE + (openEntry * 4) + 2;
 	if(iindex == INODE_ROOT)then
@@ -78,12 +86,16 @@ else
 	else
 		if([lseek] == [INODE_TABLE + (iindex * 16) + 2])then
 			[phys - 1] = -2;
+			//print "eof";
 			[procTable + 9] = 0;
 			SP = [procTable + 13];
 			ireturn;
 		endif;
+		//print "lseek";
+		//print [lseek];
 		alias blocknum R8;
 		blocknum = [INODE_TABLE + (iindex * 16) + 8 + ([lseek] / 512)];
+		breakpoint;
 		multipush(R1, R2, R3, R4, R5, R6, R7, R8);
 		R1 = BUFFERED_READ;
 		R2 = blocknum;

@@ -1,0 +1,232 @@
+//FILE MANAGER MODULE
+
+alias funcNum R1;
+
+if(funcNum == BUFFERED_READ)then
+alias diskBlock R2;
+alias offset R3;
+alias physAdd R4;
+
+alias buffNum R5;
+//spl constant BUFFER -> starting address of buffer cache
+buffNum = (diskBlock % 4);
+
+multipush(R1, R2, R3, R4, R5);
+R1 = ACQUIRE_BUFFER;
+R2 = buffNum;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5);
+alias bufferEntry R6;
+bufferEntry = BUFFER_TABLE + (buffNum * 4);
+if([bufferEntry] != diskBlock)then
+	if([bufferEntry] != -1 && [bufferEntry + 1] == 1)then
+		multipush(R1, R2, R3, R4, R5, R6);
+		R1 = DISK_STORE;
+		R2 = (BUFFER / 512) + buffNum;
+		print "hi";
+		R3 = [bufferEntry];
+		call MOD_4;
+		multipop(R1, R2, R3, R4, R5, R6);
+ 		[bufferEntry + 1] = 0;
+	endif;
+	multipush(R1, R2, R3, R4, R5, R6);
+	R1 = DISK_LOAD;
+	R4 = diskBlock;
+	R3 = (BUFFER / 512) + buffNum;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	//print "hi1";
+	//print R4;
+	call MOD_4;
+	multipop(R1, R2, R3, R4, R5, R6);
+	[bufferEntry] = diskBlock;
+endif;
+
+[physAdd] = [((BUFFER / 512) + buffNum)*512 + offset];
+
+
+multipush(R1, R2, R3, R4, R5, R6);
+R1 = RELEASE_BUFFER; 
+R2 = buffNum;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5, R6);
+return;
+endif;
+
+if(funcNum == BUFFERED_WRITE)then
+alias diskBlock R2;
+alias offset R3;
+alias word R4;
+
+alias buffNum R5;
+//spl constant BUFFER -> starting address of buffer cache
+buffNum = (diskBlock % 4);
+
+multipush(R1, R2, R3, R4, R5);
+R1 = ACQUIRE_BUFFER;
+R2 = buffNum;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5);
+alias bufferEntry R6;
+bufferEntry = BUFFER_TABLE + (buffNum * 4);
+if([bufferEntry] != diskBlock)then
+	if([bufferEntry] != -1 && [bufferEntry + 1] == 1)then
+		multipush(R1, R2, R3, R4, R5, R6);
+		R1 = DISK_STORE;
+		R2 = (BUFFER / 512) + buffNum;
+		print "hi";
+		R3 = [bufferEntry];
+		call MOD_4;
+		multipop(R1, R2, R3, R4, R5, R6);
+ 		[bufferEntry + 1] = 0;
+	endif;
+	multipush(R1, R2, R3, R4, R5, R6);
+	R1 = DISK_LOAD;
+	R4 = diskBlock;
+	R3 = (BUFFER / 512) + buffNum;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	//print "hi1";
+	//print R4;
+	call MOD_4;
+	multipop(R1, R2, R3, R4, R5, R6);
+	[bufferEntry] = diskBlock;
+endif;
+
+[((BUFFER / 512) + buffNum)*512 + offset] = word;
+[bufferEntry + 1] = 1;
+
+multipush(R1, R2, R3, R4, R5, R6);
+R1 = RELEASE_BUFFER; 
+R2 = buffNum;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5, R6);
+return;
+endif;
+
+
+if(funcNum == OPEN)then
+alias fName R2;
+alias count R3;
+alias iindex R4;
+iindex = -1;
+count = 0;
+
+//find the inode index
+while(count < MAX_FILE_NUM)do
+	if(fName == [INODE_TABLE + (count * 16) + 1])then
+		iindex = count;
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+//if not found
+if(iindex == -1)then
+	R0 = -1;
+	print "hi";
+	breakpoint;
+	return;
+endif;
+
+//acquire inode
+multipush(R1, R2, R3, R4);
+R1 = ACQUIRE_INODE;
+R2 = iindex;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4);
+
+//if acquire inode fails return -1
+if(R0 == -1)then
+	R0 = -1;
+	return;
+endif;
+
+//check exec file type
+if([INODE_TABLE + (iindex * 16)] == EXEC)then
+	R0 = -1;
+	multipush(R1, R2, R3, R4);
+	R1 = RELEASE_INODE;
+	R2 = iindex;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	call MOD_0;
+	multipop(R1, R2, R3, R4);
+	return;
+endif;
+
+//finding a free open table instance
+count  = 0;
+alias openEntry R5;
+openEntry = -1;
+while(count < MAX_OPENFILE_NUM)do
+	if([OPEN_FILE_TABLE + (count * 4)] == -1)then
+		openEntry = count;
+		break;
+	endif;
+	count = count + 1;
+endwhile;
+
+
+if(openEntry == -1)then
+	R0 = -2;
+	return;
+endif;
+
+alias addOpen R6;
+addOpen = OPEN_FILE_TABLE + (openEntry * 4);
+//updating file status table
+if(fName == "root")then
+	[addOpen] = INODE_ROOT;
+else
+	alias fst R7;
+	fst = FILE_STATUS_TABLE + (iindex * 4);
+	if([fst + 1] == -1)then
+		[fst + 1] = 1;
+	else
+		[fst + 1] = [fst + 1] + 1;
+	endif;
+	[addOpen] = iindex;
+endif;
+
+//updating open file table
+[addOpen + 1] = 1;
+[addOpen + 2] = 0;
+
+multipush(R1, R2, R3, R4, R5, R6);
+R1 = RELEASE_INODE;
+R2 = iindex;
+R3 = [SYSTEM_STATUS_TABLE + 1];
+call MOD_0;
+multipop(R1, R2, R3, R4, R5, R6);
+
+R0 = openEntry;
+return;
+endif;
+
+if(funcNum == CLOSE)then
+	alias openEntry R2;
+	alias iindex R3;
+	alias addOpen R4;
+	addOpen = OPEN_FILE_TABLE + (openEntry*4);
+	iindex = [addOpen];
+	[addOpen + 1] = [addOpen + 1] - 1;
+	//print "hi";
+	if([addOpen + 1] == 0)then
+		[addOpen] = -1;
+		[addOpen + 1] = -1;
+		[addOpen + 2] = -1;
+		if(iindex != INODE_ROOT)then
+			alias fst R5;
+			fst = FILE_STATUS_TABLE + (iindex * 4);
+			[fst + 1] = [fst + 1] - 1;
+			if([fst + 1] == 0)then
+				[fst + 1] = -1;
+			endif;
+		endif;
+	endif;
+	return;
+	
+endif;

@@ -85,9 +85,9 @@ pt = [PROCESS_TABLE + (pid * 16) + 14];
 [pt + 3] = "0000";
 
 alias diskMapEntry R4;
-diskMapEntry = DISK_MAP_TABLE + (pid * 16);
+diskMapEntry = DISK_MAP_TABLE + (pid * 10);
 
-if([diskMapEntry + 2] != -1)then
+if([diskMapEntry + 2] != -1 && [diskMapEntry + 2] != 0)then
 	multipush(R1, R2, R3, R4);
 	R1 = RELEASE_BLOCK;
 	R2 = [diskMapEntry + 2];
@@ -96,8 +96,7 @@ if([diskMapEntry + 2] != -1)then
 	multipop(R1, R2, R3, R4);
 endif;
 
-
-if([diskMapEntry + 3] != -1)then
+if([diskMapEntry + 3] != -1 && [diskMapEntry + 2] != 0)then
 	multipush(R1, R2, R3, R4);
 	R1 = RELEASE_BLOCK;
 	R2 = [diskMapEntry + 3];
@@ -105,7 +104,7 @@ if([diskMapEntry + 3] != -1)then
 	call MOD_2;
 	multipop(R1, R2, R3, R4);
 endif;
-if([diskMapEntry + 8] != -1)then
+if([diskMapEntry + 8] != -1 && [diskMapEntry + 2] != 0)then
 	multipush(R1, R2, R3, R4);
 	R1 = RELEASE_BLOCK;
 	R2 = [diskMapEntry + 8];
@@ -114,7 +113,7 @@ if([diskMapEntry + 8] != -1)then
 	multipop(R1, R2, R3, R4);
 endif;
 
-if([diskMapEntry + 9] != -1)then
+if([diskMapEntry + 9] != -1 && [diskMapEntry + 2] != 0)then
 	multipush(R1, R2, R3, R4);
 	R1 = RELEASE_BLOCK;
 	R2 = [diskMapEntry + 9];

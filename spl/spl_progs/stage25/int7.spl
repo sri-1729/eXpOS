@@ -1,0 +1,135 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+alias userSP R0;
+userSP = SP;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11]*512 - 1;
+
+alias physPage R1;
+alias offset R2;
+alias final R3;
+
+physPage = [PTBR + 2 * ((userSP-4) / 512)];
+offset = (userSP -4) % 512;
+final = (physPage*512) + offset;
+
+alias value R4;
+value = [final];
+
+if(value != -2)
+then
+	alias procTable R1;
+	procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+	alias phys R2;
+	phys = [PTBR + ([procTable + 13] / 512)*2]*512 + ([procTable + 13] % 512);
+	if([phys - 4] < 0 || [phys - 4] > 7)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	alias oindex R3;
+	alias iindex R4;
+	alias prtEntry R5;
+	prtEntry = [procTable + 11]*512 + 496 + [phys - 4]*2;
+	if([prtEntry] == -1 || [prtEntry] != FILE)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	oindex = [prtEntry + 1];
+	iindex = [OPEN_FILE_TABLE + oindex*4];
+	alias ientry R6;
+	ientry = INODE_TABLE + (iindex * 16);
+	if([procTable + 3] != 1 && [ientry + 3] != [procTable + 3] && [ientry + 4] == 0)then
+		[phys - 1] = -3;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;	
+	multipush(R1, R2, R3, R4, R5, R6);
+	R1 = ACQUIRE_INODE;
+	R2 = iindex;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	multipop(R1, R2, R3, R4, R5, R6);
+	if(R0 == -1)then
+		[phys - 1] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	alias lseek R7;
+	lseek = [OPEN_FILE_TABLE + (oindex * 4) + 2];
+	if(lseek == MAX_FILE_SIZE)then	
+		multipush(R1, R2);
+		R1 = RELEASE_INODE;
+		R2 = iindex;
+		R3 = [SYSTEM_STATUS_TABLE + 1];
+		multipop(R1, R2);
+		[phys - 1] = -2;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+	if(lseek % 512 == 0 && lseek == [ientry + 2])then
+		multipush(R1, R2, R3, R4, R5, R6, R7);
+		R1 = GET_FREE_BLOCK;
+		call MOD_2;
+		multipop(R1, R2, R3, R4, R5, R6, R7);
+		if(R0 == -1)then
+			multipush(R1, R2);
+			R1 = RELEASE_INODE;
+			R2 = iindex;
+			R3 = [SYSTEM_STATUS_TABLE + 1];
+			multipop(R1, R2);
+			[phys - 1] = -2;
+			[procTable + 9] = 0;
+			SP = [procTable + 13];
+			ireturn;
+		endif;
+		[ientry + 8 + (lseek / 512)] = R0;
+	endif;
+	multipush(R1, R2, R3, R4, R5, R6, R7);
+	R1 = BUFFERED_WRITE;
+	R2 = [ientry + 8 + (lseek / 512)];
+	R3 = lseek % 512;
+	R4 = [phys - 3];
+	call MOD_3;
+	multipop(R1, R2, R3, R4, R5, R6, R7);
+	//if lseek is equal to file size
+	if(lseek == [ientry + 2])then
+		[ientry + 2] = [ientry + 2] + 1;
+		[ROOT_FILE + (iindex * 8) + 1] = [ientry + 2];
+	endif;
+	//increasing lseek
+	[OPEN_FILE_TABLE + (oindex * 4) + 2] = lseek + 1;
+	//call release inode 
+	multipush(R1, R2);
+	R1 = RELEASE_INODE;
+	R2 = iindex;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	multipop(R1, R2);
+	[phys - 1] = 0;
+	[procTable + 9] = 0;
+	SP = [procTable + 13];
+	ireturn;
+else
+	alias word R5;
+	word = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
+	multipush(R0, R1, R2, R3, R4, R5);
+	R1 = 3;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	R3 = word;
+	call MOD_4;
+	multipop(R0, R1, R2, R3, R4, R5);
+	alias physicalAddrRetVal R6;
+	physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
+	[physicalAddrRetVal] = 0;
+endif;
+
+SP = userSP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;  
+ireturn;
+
+

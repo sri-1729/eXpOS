@@ -59,6 +59,7 @@ if(funcNum == ACQUIRE_INODE)then
 		multipop(R1, R2, R3, R4, R5, R6);
 	endwhile;
 	if([INODE_TABLE + (iindex * 16) + 1] == -1)then
+		breakpoint;
 		R0 = -1;
 		return;
 	endif;
