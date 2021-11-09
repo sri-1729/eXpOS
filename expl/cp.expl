@@ -1,0 +1,21 @@
+int main(){
+decl
+	int t, fd1, fd2, eof;
+	string file1, file2, word;
+enddecl
+begin
+	t = exposcall("Read", -1, file1);
+	t = exposcall("Read", -1, file2);
+	t = exposcall("Create", file2, 0);
+	fd1 = exposcall("Open", file1);
+	fd2 = exposcall("Open", file2);
+	eof = exposcall("Read", fd1, word);
+	while(eof != -2)do
+		t = exposcall("Write", fd2, word);
+		eof = exposcall("Read", fd1, word);
+	endwhile;
+	t = exposcall("Close", fd1);
+	t = exposcall("Close", fd2);
+	return 0;
+end
+}

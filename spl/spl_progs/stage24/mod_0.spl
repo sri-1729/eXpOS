@@ -32,7 +32,7 @@ if(funcNum == RELEASE_BUFFER)then
 	while(count < 16)do
 		alias procTable R5;
 		procTable = PROCESS_TABLE + (count * 16);
-		if([procTable + 4] == WAIT_TERMINAL)then
+		if([procTable + 4] == WAIT_BUFFER)then
 			if([procTable + 5] == buffnum)then
 				[procTable + 4] = READY;
 			endif;

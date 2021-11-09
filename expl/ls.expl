@@ -1,0 +1,20 @@
+int main(){
+decl 
+	int t, fd, iter;
+	string word;
+enddecl
+begin
+	fd = exposcall("Open", "root");
+	iter = 0;
+	while(iter < 60)do
+		t = exposcall("Read", fd, word);
+		if(word != "-1")then
+			t = exposcall("Write", -2, word);
+		endif;
+		t = exposcall("Seek", fd, 7);
+		iter = iter + 1;
+	endwhile;
+	t = exposcall("Close", fd);
+	return 0;
+end
+}

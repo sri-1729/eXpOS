@@ -1,0 +1,124 @@
+alias func R1;
+alias first R2;
+
+if(func == GET_FREE_BLOCK)then
+	alias iter R3;
+	iter = DISK_FREE_AREA;
+	while(iter < DISK_SWAP_AREA)do
+		if([DISK_FREE_LIST + iter] == 0)then
+			[DISK_FREE_LIST + iter] = 1;
+			R0 = iter;
+			return;
+		endif;
+		iter = iter + 1;
+	endwhile;
+	R0 = -1;
+	return;
+endif;
+
+
+
+if(func == GET_FREE_PAGE)then
+
+[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+
+while([SYSTEM_STATUS_TABLE + 2] == 0)do
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 4] = WAIT_MEM;
+	multipush(R1, R2);
+	call MOD_5;
+	multipop(R1, R2);
+endwhile;
+
+[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+
+alias iter R3;
+iter = 0;
+while(iter < MAX_MEM_PAGE)do
+	if([MEMORY_FREE_LIST + iter] == 0)then
+		[MEMORY_FREE_LIST + iter] = 1;
+		break;
+	endif;
+	iter = iter + 1;
+endwhile;
+//print iter;
+R0 = iter;
+
+return;
+endif; 
+
+if(func == RELEASE_PAGE)then
+	[MEMORY_FREE_LIST + first] = [MEMORY_FREE_LIST + first] - 1;
+	if([MEMORY_FREE_LIST + first] == 0)then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	endif;
+	alias iter R4;
+	while(iter < 16)do
+		if([PROCESS_TABLE + (iter * 16) + 4] == WAIT_MEM)then
+			[PROCESS_TABLE + (iter *16) + 4] = READY;
+		endif;
+	iter = iter + 1;
+	endwhile;
+return;
+endif;
+
+if(func == GET_CODE_PAGE)then
+
+alias process R3;
+alias entry R4;
+
+process = 0;
+entry = 0;
+
+while(process < 16)do
+	entry = 4;
+	while(entry < 8)do
+		alias pageTableEntry R5;
+		pageTableEntry = PAGE_TABLE_BASE + (process * 20) + (2*entry);
+		if([DISK_MAP_TABLE + (process * 10) + entry] == R2 && [pageTableEntry + 1] != "0000")then
+			[MEMORY_FREE_LIST + [pageTableEntry]] = [MEMORY_FREE_LIST + [pageTableEntry]] + 1;
+			R0 = [pageTableEntry];
+			return;
+		endif;
+	entry = entry + 1;
+	endwhile;
+	process = process + 1;
+endwhile;
+	
+multipush(R1, R2, R3, R4);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop(R1, R2, R3, R4);
+R6 = R2;
+multipush(R0, R1, R2, R3, R4);
+R1 = DISK_LOAD;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = R0;
+R4 = R6;
+call MOD_4;
+multipop(R0, R1, R2, R3, R4);
+return;
+endif;
+
+if(func == RELEASE_BLOCK)then
+
+print "releaseb";
+print R2;
+[DISK_FREE_LIST + R2] = [DISK_FREE_LIST + R2] - 1;
+return;
+
+endif;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
